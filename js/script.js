@@ -198,8 +198,66 @@ function manejarReproduccionIntervalo() {
 }
 
 // ====================
-// Módulo de Evaluación de Intervalos (con detección de pitch)
+// Módulo de Evaluación de Intervalos (detección de ambas notas con click para indicar cambio)
 // ====================
+
+// Variables para controlar la evaluación
+let detectionStage = 0; // 0: no iniciado, 1: esperando primera nota, 2: esperando segunda nota
+let detectedPitch1 = null;
+let detectedPitch2 = null;
+
+/**
+ * Inicia la detección de pitch usando el micrófono y el AnalyserNode.
+ * Durante 'duration' segundos se recogen las detecciones, al final se calcula la media y se llama al callback.
+ */
+function startPitchDetection(duration, callback) {
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      const micSource = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      micSource.connect(analyser);
+      const bufferLength = analyser.fftSize;
+      const buffer = new Float32Array(bufferLength);
+      const detecciones = [];
+      const startTime = audioCtx.currentTime;
+      
+      // Cuenta atrás visual
+      const contadorEl = document.getElementById('contador');
+      let remaining = duration;
+      contadorEl.textContent = `Tiempo: ${remaining}`;
+      const intervalId = setInterval(() => {
+        remaining--;
+        contadorEl.textContent = `Tiempo: ${remaining}`;
+      }, 1000);
+      
+      function update() {
+        analyser.getFloatTimeDomainData(buffer);
+        const pitch = autoCorrelate(buffer, audioCtx.sampleRate);
+        if (pitch !== -1) {
+          detecciones.push(pitch);
+        }
+        if (audioCtx.currentTime - startTime < duration) {
+          requestAnimationFrame(update);
+        } else {
+          clearInterval(intervalId);
+          contadorEl.textContent = "";
+          stream.getTracks().forEach(track => track.stop());
+          if (detecciones.length > 0) {
+            const promedio = detecciones.reduce((a, b) => a + b, 0) / detecciones.length;
+            callback(promedio);
+          } else {
+            callback(null);
+          }
+        }
+      }
+      update();
+    })
+    .catch(err => {
+      console.error("Error al acceder al micrófono", err);
+      callback(null);
+    });
+}
 
 /**
  * Algoritmo de autocorrelación para detectar el pitch.
@@ -260,77 +318,67 @@ function autoCorrelate(buf, sampleRate) {
 }
 
 /**
- * Inicia la detección de pitch usando el micrófono y el AnalyserNode.
- * Durante 3 segundos se recogen las detecciones, al final se calcula la media y se llama al callback.
+ * Función que maneja los clicks para iniciar la detección de la primera y segunda nota.
  */
-function startPitchDetection(callback) {
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
-      const micSource = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048;
-      micSource.connect(analyser);
-      const bufferLength = analyser.fftSize;
-      const buffer = new Float32Array(bufferLength);
-      const detecciones = [];
-      const startTime = audioCtx.currentTime;
-      
-      function update() {
-        analyser.getFloatTimeDomainData(buffer);
-        const pitch = autoCorrelate(buffer, audioCtx.sampleRate);
-        if (pitch !== -1) {
-          detecciones.push(pitch);
-        }
-        if (audioCtx.currentTime - startTime < 3) {
-          requestAnimationFrame(update);
-        } else {
-          stream.getTracks().forEach(track => track.stop());
-          if (detecciones.length > 0) {
-            const promedio = detecciones.reduce((a, b) => a + b, 0) / detecciones.length;
-            callback(promedio);
-          } else {
-            callback(null);
-          }
-        }
-      }
-      update();
-    })
-    .catch(err => {
-      console.error("Error al acceder al micrófono", err);
-      callback(null);
-    });
-}
-
-/**
- * Evalúa la ejecución del usuario comparando el pitch detectado con la segunda nota esperada.
- * Se asume que el usuario debe tocar la segunda nota del intervalo.
- */
-function evaluateExecution() {
+function handleEvaluationStep() {
+  const btnEval = document.getElementById('btnEvaluarEjecucion');
   const mensajeEval = document.getElementById('mensajeEvaluacion');
-  mensajeEval.textContent = "Escuchando... toca la segunda nota del intervalo";
-  // Se inicia la detección de pitch durante 3 segundos
-  startPitchDetection(function(detectedPitch) {
-    if (detectedPitch) {
-      const expected = currentInterval ? currentInterval.segundaFrecuencia : null;
-      if (expected) {
-        // Definir una tolerancia del 5%
-        const tolerance = expected * 0.05;
-        if (Math.abs(detectedPitch - expected) <= tolerance) {
-          mensajeEval.textContent = `¡Correcto! Detectado: ${detectedPitch.toFixed(2)} Hz, esperado: ${expected.toFixed(2)} Hz.`;
-          mensajeEval.style.color = "green";
-        } else {
-          mensajeEval.textContent = `Incorrecto. Detectado: ${detectedPitch.toFixed(2)} Hz, esperado: ${expected.toFixed(2)} Hz.`;
-          mensajeEval.style.color = "red";
-        }
-      } else {
+  
+  if (detectionStage === 0) {
+    // Inicia la detección de la primera nota
+    detectionStage = 1;
+    btnEval.textContent = "Detectar segunda nota";
+    mensajeEval.textContent = "Haz clic para detectar la primera nota (3 segundos de grabación)";
+    startPitchDetection(3, function(pitch1) {
+      if (!pitch1) {
+        mensajeEval.textContent = "No se pudo detectar la primera nota.";
+        mensajeEval.style.color = "red";
+        detectionStage = 0;
+        btnEval.textContent = "Iniciar Evaluación";
+        return;
+      }
+      detectedPitch1 = pitch1;
+      mensajeEval.textContent = `Primera nota detectada: ${pitch1.toFixed(2)} Hz. Ahora haz clic para detectar la segunda nota.`;
+      mensajeEval.style.color = "black";
+    });
+  } else if (detectionStage === 1) {
+    // Inicia la detección de la segunda nota
+    detectionStage = 2;
+    btnEval.textContent = "Evaluar Intervalo";
+    mensajeEval.textContent = "Haz clic para detectar la segunda nota (3 segundos de grabación)";
+    startPitchDetection(3, function(pitch2) {
+      if (!pitch2) {
+        mensajeEval.textContent = "No se pudo detectar la segunda nota.";
+        mensajeEval.style.color = "red";
+        detectionStage = 0;
+        btnEval.textContent = "Iniciar Evaluación";
+        return;
+      }
+      detectedPitch2 = pitch2;
+      // Calcular el intervalo en semitonos
+      const detectedInterval = 12 * Math.log2(detectedPitch2 / detectedPitch1);
+      const expectedInterval = currentInterval ? currentInterval.intervaloCorrecto.semitonos : null;
+      if (!expectedInterval) {
         mensajeEval.textContent = "No hay un intervalo generado para comparar.";
         mensajeEval.style.color = "black";
+      } else {
+        const tolerance = 0.5; // ±0.5 semitonos
+        if (Math.abs(detectedInterval - expectedInterval) <= tolerance) {
+          mensajeEval.textContent = `¡Correcto! Intervalo detectado: ${detectedInterval.toFixed(2)} semitonos (esperado: ${expectedInterval}).`;
+          mensajeEval.style.color = "green";
+          aciertosIntervalo++;
+        } else {
+          mensajeEval.textContent = `Incorrecto. Intervalo detectado: ${detectedInterval.toFixed(2)} semitonos (esperado: ${expectedInterval}).`;
+          mensajeEval.style.color = "red";
+          fallosIntervalo++;
+        }
+        actualizarEstadisticasIntervalo();
       }
-    } else {
-      mensajeEval.textContent = "No se pudo detectar sonido.";
-      mensajeEval.style.color = "red";
-    }
-  });
+      // Reiniciar la evaluación
+      detectionStage = 0;
+      btnEval.textContent = "Iniciar Evaluación";
+    });
+  }
 }
 
 // ====================
@@ -481,6 +529,6 @@ tabButtons.forEach(button => {
 // Eventos de botones
 // ====================
 document.getElementById('btnReproducirIntervalo').addEventListener('click', manejarReproduccionIntervalo);
-document.getElementById('btnEvaluarEjecucion').addEventListener('click', evaluateExecution);
+document.getElementById('btnEvaluarEjecucion').addEventListener('click', handleEvaluationStep);
 document.getElementById('btnReproducirEscala').addEventListener('click', manejarReproduccionEscala);
 document.getElementById('btnReproducirArpegio').addEventListener('click', manejarReproduccionArpegio);
