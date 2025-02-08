@@ -28,23 +28,27 @@
             <option value="dificil">Difícil</option>
           </select>
           <div class="botones">
-            <!-- Botón para reproducir el intervalo (si ya existe, se repite) -->
             <button id="btnReproducirIntervalo">Reproducir Intervalo</button>
           </div>
-          <div class="opciones" id="opcionesIntervalo">
-            <!-- Opciones de respuesta (en este ejemplo se usa solo la reproducción) -->
-          </div>
+          <!-- Área para opciones MC -->
+          <div class="opciones" id="opcionesIntervalo"></div>
           <div class="mensaje" id="mensajeIntervalo"></div>
           <div class="stats">
-            <h3>Estadísticas</h3>
+            <h3>Estadísticas Multiple Choice</h3>
             <p>Aciertos: <span id="aciertosIntervalo">0</span></p>
             <p>Fallos: <span id="fallosIntervalo">0</span></p>
           </div>
-          <!-- Botón para evaluar la ejecución del intervalo -->
+          <hr>
+          <!-- Módulo Evaluación Automática -->
           <div class="botones">
             <button id="btnEvaluarEjecucion">Iniciar Evaluación</button>
           </div>
           <div class="mensaje" id="mensajeEvaluacion"></div>
+          <div class="stats">
+            <h3>Estadísticas Evaluación Automática</h3>
+            <p>Aciertos: <span id="aciertosEval">0</span></p>
+            <p>Fallos: <span id="fallosEval">0</span></p>
+          </div>
           <div class="mensaje" id="contador"></div>
         </section>
         
