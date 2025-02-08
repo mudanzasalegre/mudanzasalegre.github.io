@@ -2,6 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8">
+    <!-- La meta viewport asegura que la página sea responsive -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Entrenamiento Musical para Trompa</title>
     <link rel="stylesheet" href="css/styles.css">
@@ -15,6 +16,7 @@
         <button class="tab-button active" data-tab="intervalos">Intervalos</button>
         <button class="tab-button" data-tab="escalas">Escalas</button>
         <button class="tab-button" data-tab="arpegios">Arpegios</button>
+        <button class="tab-button" data-tab="armonicos">Armónicos</button>
       </nav>
       
       <div id="content">
@@ -30,7 +32,7 @@
           <div class="botones">
             <button id="btnReproducirIntervalo">Reproducir Intervalo</button>
           </div>
-          <!-- Área para opciones MC -->
+          <!-- Área para Multiple Choice -->
           <div class="opciones" id="opcionesIntervalo"></div>
           <div class="mensaje" id="mensajeIntervalo"></div>
           <div class="stats">
@@ -64,13 +66,19 @@
             <option value="oriental">Oriental</option>
             <option value="pentatonica">Pentatónica</option>
           </select>
+          <!-- Tonalidades con accidentales -->
           <select id="tonalidadEscala">
-            <option value="C">Do</option>
+            <option value="C" selected>Do</option>
+            <option value="C#">Do#</option>
             <option value="D">Re</option>
+            <option value="D#">Re#</option>
             <option value="E">Mi</option>
-            <option value="F" selected>Fa</option>
+            <option value="F">Fa</option>
+            <option value="F#">Fa#</option>
             <option value="G">Sol</option>
+            <option value="G#">Sol#</option>
             <option value="A">La</option>
+            <option value="A#">La#</option>
             <option value="B">Si</option>
           </select>
           <div class="botones">
@@ -89,18 +97,29 @@
             <option value="dominante">Dominante</option>
           </select>
           <select id="tonalidadArpegio">
-            <option value="C">Do</option>
+            <option value="C" selected>Do</option>
+            <option value="C#">Do#</option>
             <option value="D">Re</option>
+            <option value="D#">Re#</option>
             <option value="E">Mi</option>
-            <option value="F" selected>Fa</option>
+            <option value="F">Fa</option>
+            <option value="F#">Fa#</option>
             <option value="G">Sol</option>
+            <option value="G#">Sol#</option>
             <option value="A">La</option>
+            <option value="A#">La#</option>
             <option value="B">Si</option>
           </select>
           <div class="botones">
             <button id="btnReproducirArpegio">Reproducir Arpegio</button>
           </div>
           <div class="mensaje" id="mensajeArpegio"></div>
+        </section>
+        
+        <!-- Módulo de Armónicos -->
+        <section id="armonicos" class="tab-content">
+          <h2>Armónicos</h2>
+          <p>Aquí se implementarán funciones para analizar armónicos.</p>
         </section>
       </div>
     </div>

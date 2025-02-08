@@ -39,7 +39,6 @@ h1, h2, h3 {
 
 .tab-button.active {
   border-color: #007BFF;
-  color: 007BFF;
   font-weight: bold;
 }
 
@@ -96,4 +95,19 @@ button:hover {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Media Queries para Responsividad */
+@media (max-width: 600px) {
+  .container {
+    padding: 10px 15px;
+  }
+  .tab-button {
+    padding: 8px 12px;
+    font-size: 0.9em;
+  }
+  button, select {
+    font-size: 0.9em;
+    padding: 8px 12px;
+  }
 }
