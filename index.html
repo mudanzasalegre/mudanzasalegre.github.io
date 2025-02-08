@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entrenamiento Musical para Trompa</title>
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Entrenamiento Musical para Trompa</h1>
+      
+      <!-- Navegación por módulos -->
+      <nav class="tabs">
+        <button class="tab-button active" data-tab="intervalos">Intervalos</button>
+        <button class="tab-button" data-tab="escalas">Escalas</button>
+        <button class="tab-button" data-tab="arpegios">Arpegios</button>
+      </nav>
+      
+      <div id="content">
+        <!-- Módulo de Intervalos -->
+        <section id="intervalos" class="tab-content active">
+          <h2>Entrenador de Intervalos</h2>
+          <p>Selecciona el nivel de dificultad:</p>
+          <select id="nivelDificultad">
+            <option value="facil">Fácil</option>
+            <option value="medio" selected>Medio</option>
+            <option value="dificil">Difícil</option>
+          </select>
+          <div class="botones">
+            <!-- Botón para reproducir el intervalo (si ya existe, se repite) -->
+            <button id="btnReproducirIntervalo">Reproducir Intervalo</button>
+          </div>
+          <div class="opciones" id="opcionesIntervalo">
+            <!-- Aquí se cargarán las opciones para identificar el intervalo (si se quiere modo pasivo) -->
+          </div>
+          <div class="mensaje" id="mensajeIntervalo"></div>
+          <div class="stats">
+            <h3>Estadísticas</h3>
+            <p>Aciertos: <span id="aciertosIntervalo">0</span></p>
+            <p>Fallos: <span id="fallosIntervalo">0</span></p>
+          </div>
+          <!-- Botón para evaluar lo que tocas -->
+          <div class="botones">
+            <button id="btnEvaluarEjecucion">Evaluar mi ejecución</button>
+          </div>
+          <div class="mensaje" id="mensajeEvaluacion"></div>
+        </section>
+        
+        <!-- Módulo de Escalas -->
+        <section id="escalas" class="tab-content">
+          <h2>Entrenador de Escalas</h2>
+          <p>Selecciona el tipo de escala y la tonalidad (para trompa en fa):</p>
+          <select id="tipoEscala">
+            <option value="mayor" selected>Mayor</option>
+            <option value="menor">Menor Natural</option>
+            <option value="armonica">Menor Armónica</option>
+            <option value="melodica">Menor Melódica</option>
+            <option value="oriental">Oriental</option>
+            <option value="pentatonica">Pentatónica</option>
+          </select>
+          <select id="tonalidadEscala">
+            <option value="C">Do</option>
+            <option value="D">Re</option>
+            <option value="E">Mi</option>
+            <option value="F" selected>Fa</option>
+            <option value="G">Sol</option>
+            <option value="A">La</option>
+            <option value="B">Si</option>
+          </select>
+          <div class="botones">
+            <button id="btnReproducirEscala">Reproducir Escala</button>
+          </div>
+          <div class="mensaje" id="mensajeEscala"></div>
+        </section>
+        
+        <!-- Módulo de Arpegios -->
+        <section id="arpegios" class="tab-content">
+          <h2>Entrenador de Arpegios</h2>
+          <p>Selecciona el tipo de acorde y la tonalidad (para trompa en fa):</p>
+          <select id="tipoArpegio">
+            <option value="mayor" selected>Mayor</option>
+            <option value="menor">Menor</option>
+            <option value="dominante">Dominante</option>
+          </select>
+          <select id="tonalidadArpegio">
+            <option value="C">Do</option>
+            <option value="D">Re</option>
+            <option value="E">Mi</option>
+            <option value="F" selected>Fa</option>
+            <option value="G">Sol</option>
+            <option value="A">La</option>
+            <option value="B">Si</option>
+          </select>
+          <div class="botones">
+            <button id="btnReproducirArpegio">Reproducir Arpegio</button>
+          </div>
+          <div class="mensaje" id="mensajeArpegio"></div>
+        </section>
+      </div>
+    </div>
+    
+    <script src="js/script.js"></script>
+  </body>
+</html>
