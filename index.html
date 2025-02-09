@@ -2,16 +2,18 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8">
-    <!-- La meta viewport asegura que la página sea responsive -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Entrenamiento Musical para Trompa</title>
+    <!-- Tus estilos -->
     <link rel="stylesheet" href="css/styles.css">
+    <!-- VexFlow desde CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   </head>
   <body>
     <div class="container">
       <h1>Entrenamiento Musical para Trompa</h1>
       
-      <!-- Navegación por módulos -->
+      <!-- Navegación por módulos (Tabs) -->
       <nav class="tabs">
         <button class="tab-button active" data-tab="intervalos">Intervalos</button>
         <button class="tab-button" data-tab="escalas">Escalas</button>
@@ -32,16 +34,20 @@
           <div class="botones">
             <button id="btnReproducirIntervalo">Reproducir Intervalo</button>
           </div>
-          <!-- Área para Multiple Choice -->
+          
+          <!-- Opciones Multiple Choice -->
           <div class="opciones" id="opcionesIntervalo"></div>
-          <div class="mensaje" id="mensajeIntervalo"></div>
+          <!-- Mensaje para Intervalos (MC) -->
+          <div class="mensaje" id="mensajeIntervalos"></div>
+          <!-- Estadísticas MC -->
           <div class="stats">
             <h3>Estadísticas Multiple Choice</h3>
             <p>Aciertos: <span id="aciertosIntervalo">0</span></p>
             <p>Fallos: <span id="fallosIntervalo">0</span></p>
           </div>
           <hr>
-          <!-- Módulo Evaluación Automática -->
+          
+          <!-- Módulo Evaluación Automática (EA) -->
           <div class="botones">
             <button id="btnEvaluarEjecucion">Iniciar Evaluación</button>
           </div>
@@ -66,24 +72,35 @@
             <option value="oriental">Oriental</option>
             <option value="pentatonica">Pentatónica</option>
           </select>
-          <!-- Tonalidades con accidentales -->
+          <!-- Tonalidades separadas (sostenidos y bemoles) -->
           <select id="tonalidadEscala">
-            <option value="C" selected>Do</option>
-            <option value="C#">Do#</option>
-            <option value="D">Re</option>
-            <option value="D#">Re#</option>
-            <option value="E">Mi</option>
-            <option value="F">Fa</option>
-            <option value="F#">Fa#</option>
-            <option value="G">Sol</option>
-            <option value="G#">Sol#</option>
-            <option value="A">La</option>
-            <option value="A#">La#</option>
-            <option value="B">Si</option>
+            <!-- Sostenidos -->
+            <option value="C" selected>Do (C)</option>
+            <option value="C#">Do# (C#)</option>
+            <option value="D">Re (D)</option>
+            <option value="D#">Re# (D#)</option>
+            <option value="E">Mi (E)</option>
+            <option value="F">Fa (F)</option>
+            <option value="F#">Fa# (F#)</option>
+            <option value="G">Sol (G)</option>
+            <option value="G#">Sol# (G#)</option>
+            <option value="A">La (A)</option>
+            <option value="A#">La# (A#)</option>
+            <option value="B">Si (B)</option>
+            <!-- Bemoles -->
+            <option value="Db">Reb (Db)</option>
+            <option value="Eb">Mib (Eb)</option>
+            <option value="Gb">Solb (Gb)</option>
+            <option value="Ab">Lab (Ab)</option>
+            <option value="Bb">Sib (Bb)</option>
+            <option value="Cb">Dob (Cb)</option>
+            <option value="Fb">Fab (Fb)</option>
           </select>
           <div class="botones">
             <button id="btnReproducirEscala">Reproducir Escala</button>
           </div>
+          <!-- Contenedor para el pentagrama (VexFlow) -->
+          <div id="staffContainer"></div>
           <div class="mensaje" id="mensajeEscala"></div>
         </section>
         
@@ -97,18 +114,27 @@
             <option value="dominante">Dominante</option>
           </select>
           <select id="tonalidadArpegio">
-            <option value="C" selected>Do</option>
-            <option value="C#">Do#</option>
-            <option value="D">Re</option>
-            <option value="D#">Re#</option>
-            <option value="E">Mi</option>
-            <option value="F">Fa</option>
-            <option value="F#">Fa#</option>
-            <option value="G">Sol</option>
-            <option value="G#">Sol#</option>
-            <option value="A">La</option>
-            <option value="A#">La#</option>
-            <option value="B">Si</option>
+            <!-- Sostenidos -->
+            <option value="C" selected>Do (C)</option>
+            <option value="C#">Do# (C#)</option>
+            <option value="D">Re (D)</option>
+            <option value="D#">Re# (D#)</option>
+            <option value="E">Mi (E)</option>
+            <option value="F">Fa (F)</option>
+            <option value="F#">Fa# (F#)</option>
+            <option value="G">Sol (G)</option>
+            <option value="G#">Sol# (G#)</option>
+            <option value="A">La (A)</option>
+            <option value="A#">La# (A#)</option>
+            <option value="B">Si (B)</option>
+            <!-- Bemoles -->
+            <option value="Db">Reb (Db)</option>
+            <option value="Eb">Mib (Eb)</option>
+            <option value="Gb">Solb (Gb)</option>
+            <option value="Ab">Lab (Ab)</option>
+            <option value="Bb">Sib (Bb)</option>
+            <option value="Cb">Dob (Cb)</option>
+            <option value="Fb">Fab (Fb)</option>
           </select>
           <div class="botones">
             <button id="btnReproducirArpegio">Reproducir Arpegio</button>

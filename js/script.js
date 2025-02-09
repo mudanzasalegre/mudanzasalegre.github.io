@@ -1,5 +1,5 @@
 // ====================
-// Funciones de Audio y Utilerías
+// 1. Funciones de Audio y Utilerías
 // ====================
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -11,7 +11,7 @@ function reproducirNota(frecuencia, duracion = 1) {
   oscillator.frequency.value = frecuencia;
   oscillator.connect(gainNode);
   gainNode.connect(audioCtx.destination);
-  
+
   // Ramp-up y ramp-down para evitar clicks (10 ms)
   const now = audioCtx.currentTime;
   const fadeTime = 0.01;
@@ -37,10 +37,11 @@ function mezclarArray(array) {
 }
 
 // ====================
-// Datos Globales
+// 2. Datos Globales
 // ====================
 
-// Tabla de notas (octava 4) con accidentales
+// Tabla de notas (octava 4) con accidentales  
+// Se usan valores canónicos (con sostenidos)
 const notasBase = {
   "C": 261.63,
   "C#": 277.18,
@@ -99,15 +100,36 @@ const intervalosDificil = [
   { nombre: "Décima mayor", semitonos: 16 }
 ];
 
-// Variables de estadísticas y ejercicio actual
+// Variables de estadísticas y ejercicio actual para intervalos
 let currentInterval = null;
 let aciertosMC = 0;
 let fallosMC = 0;
 let aciertosEval = 0;
 let fallosEval = 0;
 
+// Variables para controlar reproducción
+let isScalePlaying = false;
+let isArpeggioPlaying = false;
+let scaleTimeouts = [];  // Para cancelar timeouts de escala si es necesario
+
 // ====================
-// Funciones Auxiliares para Notas
+// 2a. Helper: Fix Key Signature
+// ====================
+// Convierte tonalidades que VexFlow no acepta (por ejemplo, "D#" → "Eb")
+function fixKeySignature(key) {
+  const mapping = {
+    "D#": "Eb",
+    "G#": "Ab",
+    "A#": "Bb",
+    "Fb": "E",
+    "Cb": "B",
+    "E#": "F"
+  };
+  return mapping[key] || key;
+}
+
+// ====================
+// 3. Funciones Auxiliares para Notas
 // ====================
 
 function elegirNotaBaseFacil() {
@@ -136,8 +158,27 @@ function getNoteName(baseName, semitonos) {
   return notes[newIndex];
 }
 
+// Helper para generar la secuencia de claves (notas con octava) a partir de una secuencia de intervalos
+function generateKeys(tonalidadRaw, secuencia) {
+  let tonalidadDisplay = tonalidadRaw.includes("/") ? tonalidadRaw : tonalidadRaw + "/4";
+  const tonalidad = tonalidadDisplay.split("/")[0];
+  const notesArr = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  let baseIndex = notesArr.indexOf(tonalidad);
+  if (baseIndex === -1) baseIndex = 0;
+  let keys = [];
+  keys.push(tonalidadDisplay);
+  let acumulador = 0;
+  for (let i = 0; i < secuencia.length; i++) {
+    acumulador += secuencia[i];
+    const newIndex = (baseIndex + acumulador) % 12;
+    const octaveShift = Math.floor((baseIndex + acumulador) / 12);
+    keys.push(notesArr[newIndex] + "/" + (4 + octaveShift));
+  }
+  return keys;
+}
+
 // ====================
-// Funciones del Módulo de Intervalos (Multiple Choice - MC)
+// 4. Módulo de Intervalos (MC)
 // ====================
 
 function obtenerIntervalosNivel() {
@@ -197,7 +238,7 @@ function mostrarOpcionesIntervalo() {
 }
 
 function verificarRespuestaIntervalo(opcionSeleccionada) {
-  const mensaje = document.getElementById('mensajeIntervalo');
+  const mensaje = document.getElementById('mensajeIntervalos');
   if (opcionSeleccionada.semitonos === currentInterval.intervaloCorrecto.semitonos) {
     mensaje.textContent = "¡Correcto!";
     mensaje.style.color = "green";
@@ -218,21 +259,19 @@ function actualizarEstadisticasMC() {
 }
 
 function manejarReproduccionIntervalo() {
-  // Si el usuario cambia el nivel, eliminamos el ejercicio actual:
   currentInterval = null;
   document.getElementById('opcionesIntervalo').innerHTML = "";
-  document.getElementById('mensajeIntervalo').innerHTML = "";
+  document.getElementById('mensajeIntervalos').innerHTML = "";
   
   generarNuevoIntervalo();
   reproducirIntervaloActual();
   
-  // Mostrar la referencia de la nota base según el nivel:
   const nivel = document.getElementById('nivelDificultad').value;
   if (nivel === 'facil') {
-    document.getElementById('mensajeIntervalo').textContent = `Referencia: ${currentInterval.notaBaseName}`;
+    document.getElementById('mensajeIntervalos').textContent = `Referencia: ${currentInterval.notaBaseName}`;
   } else if (nivel === 'medio') {
     if (Math.random() < 0.5) {
-      document.getElementById('mensajeIntervalo').textContent = `Referencia: ${currentInterval.notaBaseName}`;
+      document.getElementById('mensajeIntervalos').textContent = `Referencia: ${currentInterval.notaBaseName}`;
     }
   }
   
@@ -240,7 +279,7 @@ function manejarReproduccionIntervalo() {
 }
 
 // ====================
-// Funciones del Módulo de Evaluación Automática de Intervalos (EA)
+// 5. Módulo de Evaluación Automática de Intervalos (EA)
 // ====================
 
 let detectedPitch1 = null;
@@ -389,7 +428,7 @@ function actualizarEstadisticasEval() {
 }
 
 // ====================
-// Funciones para Escalas
+// 6. Funciones para Escalas
 // ====================
 
 function obtenerSecuenciaEscala(tipo) {
@@ -413,53 +452,99 @@ function obtenerSecuenciaEscala(tipo) {
 
 /**
  * Reproduce la escala de forma continua:
- * Primero la ascendente y, inmediatamente después, la descendente sin pausas.
- * En la descendente se omite la nota superior para continuidad.
+ * - La parte ascendente se genera con la secuencia seleccionada.
+ * - La parte descendente se genera según:
+ *   • Si la escala es "melodica": se usa la fórmula del menor natural (sin alteraciones en el descendente).
+ *   • En otros casos: se invierte la secuencia ascendente (omitiendo la nota superior).
+ * Además, se renderiza un pentagrama con la escala completa usando VexFlow y se muestran las notas con sus accidentales.
  */
 function reproducirEscala() {
-  const tipoEscala = document.getElementById('tipoEscala').value;
-  const tonalidad = document.getElementById('tonalidadEscala').value;
-  const secuencia = obtenerSecuenciaEscala(tipoEscala);
-  const base = notasBase[tonalidad] || 261.63;
+  if (isScalePlaying) return;
+  isScalePlaying = true;
   
+  // Detener cualquier reproducción de escala en curso
+  scaleTimeouts.forEach(timeoutID => clearTimeout(timeoutID));
+  scaleTimeouts = [];
+  
+  const tipoEscala = document.getElementById('tipoEscala').value;
+  let tonalidadRaw = document.getElementById('tonalidadEscala').value;
+  if (!tonalidadRaw.includes("/")) {
+    tonalidadRaw = tonalidadRaw + "/4";
+  }
+  const tonalidad = tonalidadRaw.split("/")[0];
+  
+  const secAsc = obtenerSecuenciaEscala(tipoEscala);
+  let secDesc;
+  if (tipoEscala === "melodica") {
+    secDesc = obtenerSecuenciaEscala("menor");
+  } else {
+    secDesc = secAsc;
+  }
+  
+  const base = notasBase[tonalidad] || 261.63;
   let frecuenciasAsc = [];
   let tiempoAcumulado = 0;
   let acumulador = 0;
   
-  // Ascendente: reproducir y guardar
+  // Ascendente
   reproducirNota(base, 0.8);
   frecuenciasAsc.push(base);
   tiempoAcumulado += 0.9;
   
-  for (let i = 0; i < secuencia.length; i++) {
-    acumulador += secuencia[i];
+  for (let i = 0; i < secAsc.length; i++) {
+    acumulador += secAsc[i];
     const nuevaFrecuencia = calcularFrecuencia(base, acumulador);
     frecuenciasAsc.push(nuevaFrecuencia);
-    setTimeout(() => {
+    let t1 = setTimeout(() => {
       reproducirNota(nuevaFrecuencia, 0.8);
     }, tiempoAcumulado * 1000);
+    scaleTimeouts.push(t1);
     tiempoAcumulado += 0.9;
   }
   
-  // Descendente: reproducción continua sin pausa extra, omitiendo la última nota (octava)
-  let tiempoDesc = tiempoAcumulado;
-  for (let i = frecuenciasAsc.length - 2; i >= 0; i--) {
-    setTimeout(() => {
-      reproducirNota(frecuenciasAsc[i], 0.8);
-    }, tiempoDesc * 1000);
-    tiempoDesc += 0.9;
+  let frecuenciasDesc = [];
+  if (tipoEscala === "melodica") {
+    let acumuladorDesc = 0;
+    frecuenciasDesc.push(base);
+    const secMenor = obtenerSecuenciaEscala("menor");
+    for (let i = 0; i < secMenor.length; i++) {
+      acumuladorDesc += secMenor[i];
+      frecuenciasDesc.push(calcularFrecuencia(base, acumuladorDesc));
+    }
+    frecuenciasDesc.pop();
+    frecuenciasDesc = frecuenciasDesc.reverse();
+  } else {
+    frecuenciasDesc = frecuenciasAsc.slice(0, frecuenciasAsc.length - 1).reverse();
   }
   
-  document.getElementById('mensajeEscala').textContent = `Reproduciendo escala ${tipoEscala} en ${tonalidad} (ascendente y descendente)`;
+  for (let i = 0; i < frecuenciasDesc.length; i++) {
+    let t2 = setTimeout(() => {
+      reproducirNota(frecuenciasDesc[i], 0.8);
+    }, tiempoAcumulado * 1000);
+    scaleTimeouts.push(t2);
+    tiempoAcumulado += 0.9;
+  }
+  
+  document.getElementById('mensajeEscala').textContent = `Reproduciendo escala ${tipoEscala} en ${tonalidadRaw} (ascendente y descendente)`;
+  
+  // Renderizar el pentagrama
+  renderScaleStaff(tonalidadRaw, tipoEscala, secAsc, secDesc);
+  
+  const totalTime = tiempoAcumulado * 1000;
+  setTimeout(() => {
+    isScalePlaying = false;
+  }, totalTime);
 }
 
 function manejarReproduccionEscala() {
-  document.getElementById('mensajeEscala').textContent = "";
-  reproducirEscala();
+  if (!isScalePlaying) {
+    document.getElementById('mensajeEscala').textContent = "";
+    reproducirEscala();
+  }
 }
 
 // ====================
-// Funciones para Arpegios
+// 7. Funciones para Arpegios
 // ====================
 
 function obtenerSecuenciaArpegio(tipo) {
@@ -473,21 +558,23 @@ function obtenerSecuenciaArpegio(tipo) {
   return [];
 }
 
-/**
- * Reproduce el arpegio de forma continua:
- * Primero ascendente y luego descendente sin pausa extra.
- * En la descendente se omite la nota superior para continuidad.
- */
+
 function reproducirArpegio() {
+  if (isArpeggioPlaying) return;
+  isArpeggioPlaying = true;
+  
   const tipoArpegio = document.getElementById('tipoArpegio').value;
-  const tonalidad = document.getElementById('tonalidadArpegio').value;
+  let tonalidadRaw = document.getElementById('tonalidadArpegio').value;
+  if (!tonalidadRaw.includes("/")) {
+    tonalidadRaw = tonalidadRaw + "/4";
+  }
+  const tonalidad = tonalidadRaw.split("/")[0];
   const secuencia = obtenerSecuenciaArpegio(tipoArpegio);
   const base = notasBase[tonalidad] || 261.63;
   
   let frecuenciasAsc = [];
   let tiempoAcumulado = 0;
   
-  // Ascendente
   secuencia.forEach(intervalo => {
     const frecuencia = calcularFrecuencia(base, intervalo);
     frecuenciasAsc.push(frecuencia);
@@ -497,26 +584,92 @@ function reproducirArpegio() {
     tiempoAcumulado += 1;
   });
   
-  // Descendente: omitir la nota superior y reproducir en reversa
-  let tiempoDesc = tiempoAcumulado;
-  for (let i = frecuenciasAsc.length - 2; i >= 0; i--) {
+  let frecuenciasDesc = frecuenciasAsc.slice(0, frecuenciasAsc.length - 1).reverse();
+  for (let i = 0; i < frecuenciasDesc.length; i++) {
     setTimeout(() => {
-      reproducirNota(frecuenciasAsc[i], 0.8);
-    }, tiempoDesc * 1000);
-    tiempoDesc += 1;
+      reproducirNota(frecuenciasDesc[i], 0.8);
+    }, tiempoAcumulado * 1000);
+    tiempoAcumulado += 1;
   }
   
-  document.getElementById('mensajeArpegio').textContent = `Reproduciendo arpegio ${tipoArpegio} en ${tonalidad} (ascendente y descendente)`;
+  document.getElementById('mensajeArpegio').textContent = `Reproduciendo arpegio ${tipoArpegio} en ${tonalidadRaw} (ascendente y descendente)`;
+  
+  const totalTime = tiempoAcumulado * 1000;
+  setTimeout(() => {
+    isArpeggioPlaying = false;
+  }, totalTime);
+}
+
+function manejarReproducirArpegio() {
+  if (!isArpeggioPlaying) {
+    document.getElementById('mensajeArpegio').textContent = "";
+    reproducirArpegio();
+  }
 }
 
 function manejarReproduccionArpegio() {
-  document.getElementById('mensajeArpegio').textContent = "";
-  reproducirArpegio();
+  manejarReproducirArpegio();
 }
 
 // ====================
-// Manejo de Tabs (Navegación entre módulos)
+// 8. Funciones para Renderizar el Pentagrama (Escalas) usando VexFlow
 // ====================
+
+function renderScaleStaff(tonalidadRaw, tipoEscala, secAsc, secDesc) {
+  // Asegurarse de que tonalidadRaw tenga formato "Nota/Octava"
+  let tonalidadDisplay = tonalidadRaw.includes("/") ? tonalidadRaw : tonalidadRaw + "/4";
+  // Para la armadura, se corrige la tonalidad (por ejemplo, "D#" → "Eb")
+  const tonalidadClave = fixKeySignature(tonalidadDisplay.split("/")[0]);
+  
+  // Generar claves ascendentes
+  const keysAsc = generateKeys(tonalidadRaw, secAsc);
+  let keysDesc;
+  if (tipoEscala === "melodica") {
+    keysDesc = generateKeys(tonalidadRaw, obtenerSecuenciaEscala("menor"));
+    keysDesc.pop(); // quitar la nota superior
+    keysDesc = keysDesc.reverse();
+  } else {
+    keysDesc = keysAsc.slice(0, keysAsc.length - 1).reverse();
+  }
+  const keysTotal = keysAsc.concat(keysDesc);
+  
+  const VF = Vex.Flow;
+  const container = document.getElementById("staffContainer");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+  renderer.resize(600, 200);
+  const context = renderer.getContext();
+  context.setFont("Arial", 10, "").setBackgroundFillStyle("#fff");
+  
+  // Crear pentagrama con clave de sol y armadura
+  const stave = new VF.Stave(10, 40, 580);
+  stave.addClef("treble").addKeySignature(tonalidadClave).setContext(context).draw();
+  
+  // Crear notas a partir de keysTotal (duración negra "q")
+  const vfNotes = keysTotal.map(key => new VF.StaveNote({ keys: [key], duration: "q" }));
+  
+  // Agregar accidentals explícitos a las notas
+  vfNotes.forEach(note => {
+    const key = note.getKeys()[0]; // ej. "D#/4" o "Db/4"
+    if (key.includes("#")) {
+      note.addModifier(new VF.Accidental("#"), 0);
+    } else if (key.includes("b")) {
+      note.addModifier(new VF.Accidental("b"), 0);
+    }
+  });
+  
+  const voice = new VF.Voice({ num_beats: vfNotes.length, beat_value: 4 });
+  voice.addTickables(vfNotes);
+  new VF.Formatter().joinVoices([voice]).format([voice], 520);
+  voice.draw(context, stave);
+}
+
+// ====================
+// 9. Manejo de Tabs
+// ====================
+
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
 
@@ -530,18 +683,50 @@ tabButtons.forEach(button => {
 });
 
 // ====================
-// Evento para limpiar el ejercicio al cambiar de nivel en Intervalos
+// 10. Eventos para actualizar la visualización de la escala al cambiar de selección
+// ====================
+
+// Al cambiar el tipo de escala o la tonalidad, detener la reproducción en curso (si la hay)
+// y renderizar el pentagrama con la nueva selección.
+document.getElementById('tipoEscala').addEventListener('change', () => {
+  stopScalePlayback();
+  renderScaleStaff(document.getElementById('tonalidadEscala').value, document.getElementById('tipoEscala').value, obtenerSecuenciaEscala(document.getElementById('tipoEscala').value), (document.getElementById('tipoEscala').value==="melodica")? obtenerSecuenciaEscala("menor") : obtenerSecuenciaEscala(document.getElementById('tipoEscala').value));
+});
+document.getElementById('tonalidadEscala').addEventListener('change', () => {
+  stopScalePlayback();
+  renderScaleStaff(document.getElementById('tonalidadEscala').value, document.getElementById('tipoEscala').value, obtenerSecuenciaEscala(document.getElementById('tipoEscala').value), (document.getElementById('tipoEscala').value==="melodica")? obtenerSecuenciaEscala("menor") : obtenerSecuenciaEscala(document.getElementById('tipoEscala').value));
+});
+
+// Función para detener los timeouts de escala (para detener la reproducción en curso)
+function stopScalePlayback() {
+  scaleTimeouts.forEach(timeoutID => clearTimeout(timeoutID));
+  scaleTimeouts = [];
+  isScalePlaying = false;
+}
+
+// ====================
+// 11. Evento para limpiar el ejercicio de Intervalos al cambiar de nivel
 // ====================
 document.getElementById('nivelDificultad').addEventListener('change', function() {
   currentInterval = null;
   document.getElementById('opcionesIntervalo').innerHTML = "";
-  document.getElementById('mensajeIntervalo').innerHTML = "";
+  document.getElementById('mensajeIntervalos').innerHTML = "";
 });
 
 // ====================
-// Eventos de Botones
+// 12. Eventos de Botones
 // ====================
 document.getElementById('btnReproducirIntervalo').addEventListener('click', manejarReproduccionIntervalo);
 document.getElementById('btnEvaluarEjecucion').addEventListener('click', evaluateIntervalAuto);
 document.getElementById('btnReproducirEscala').addEventListener('click', manejarReproduccionEscala);
 document.getElementById('btnReproducirArpegio').addEventListener('click', manejarReproduccionArpegio);
+
+// ====================
+// 13. Carga inicial: renderizar el pentagrama de la escala por defecto
+// ====================
+document.addEventListener("DOMContentLoaded", () => {
+  // Por defecto se muestra la escala según los valores iniciales de los selects
+  const tipo = document.getElementById('tipoEscala').value;
+  const tonalidad = document.getElementById('tonalidadEscala').value;
+  renderScaleStaff(tonalidad, tipo, obtenerSecuenciaEscala(tipo), (tipo==="melodica")? obtenerSecuenciaEscala("menor") : obtenerSecuenciaEscala(tipo));
+});
