@@ -1,9 +1,40 @@
-// ====================
-// ARMONICOS.JS
-// Sección de Armónicos para Trompa en Bb
-// ====================
+/***********************************************
+ * ARMONICOS.JS
+ * Sección de Armónicos para Trompa en Si♭
+ * con Modo de Progresión (semifonía arriba/abajo)
+ ***********************************************/
 
-// --- 1. Funciones de Audio y Utilerías (se reutilizan las mismas del script principal) ---
+// =====================================================
+// 1. Datos y Configuración
+// =====================================================
+
+// a) Combinaciones de válvulas -> frecuencia fundamental aproximada
+//    Ajusta estos valores según tu PDF o referencia real de la trompa.
+const combosValvulas = {
+  "0": 116.54,    // approx. fundamental (Bb2)
+  "1": 110.00,    // ej. 
+  "2": 103.83,    // ej.
+  "3": 98.00,     // ej.
+  "1-2": 92.50,
+  "2-3": 87.31,
+  "1-3": 82.41,
+  "1-2-3": 77.78
+};
+
+// b) Niveles de dificultad -> cuántos armónicos (primeros n armónicos)
+const nivelesArmonicos = {
+  "facil": 4,
+  "medio": 6,
+  "dificil": 8
+};
+
+// c) Bandera global para evitar solapamiento de reproducción
+let armonicosEnProgreso = false;
+let armonicosTimeouts = []; // Para almacenar los setTimeout activos y poder detenerlos
+
+// =====================================================
+// 2. Funciones Auxiliares de Audio
+// =====================================================
 
 const audioCtxArmonicos = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -26,103 +57,61 @@ function reproducirNotaArmonicos(frecuencia, duracion = 1) {
   oscillator.stop(now + duracion);
 }
 
-function calcularFrecuenciaArmonicos(base, multiplo) {
-  return base * multiplo;
-}
-
-// --- 2. Datos y Configuración para Armónicos ---
-
-// Para simplificar, definiremos algunas "posiciones" para la trompa (en Bb).
-// Cada posición se define por una frecuencia fundamental (en Hz).  
-// Estos valores pueden ajustarse según la práctica del músico.
-const posicionesArmonicos = {
-  "Posición 1": 116.54,  // Aproximadamente Bb1 (fundamental para trompa en Bb, aunque normalmente no se toca el fundamental)
-  "Posición 2": 146.83,  // Aproximadamente Bb2
-  "Posición 3": 195.99   // Aproximadamente Bb3
-};
-
-// Definimos tres niveles de dificultad: 
-// - Fácil: primeros 4 armónicos
-// - Medio: primeros 6 armónicos
-// - Difícil: primeros 8 armónicos
-const nivelesArmonicos = {
-  "facil": 4,
-  "medio": 6,
-  "dificil": 8
-};
-
-// --- 3. Funciones para Generar la Serie Armónica ---
-
-/**
- * Dado una posición (clave del objeto posicionesArmonicos) y un nivel (clave de nivelesArmonicos),
- * genera un array de frecuencias que corresponde a la serie armónica.
- */
-function generarSerieArmonica(posicion, nivel) {
-  const fundamental = posicionesArmonicos[posicion];
-  const numHarmonics = nivelesArmonicos[nivel];
-  // Generamos los armónicos: el primer armónico es el fundamental (multiplo 1), luego 2,3,...
+// Dado un fundamental y un número n de armónicos, devuelve un array de frecuencias
+function generarSerieArmonica(fundamental, numArm) {
   const serie = [];
-  for (let n = 1; n <= numHarmonics; n++) {
-    serie.push(calcularFrecuenciaArmonicos(fundamental, n));
+  for (let i = 1; i <= numArm; i++) {
+    serie.push(fundamental * i);
   }
   return serie;
 }
 
-/**
- * Dado la serie armónica (array de frecuencias), genera un array de claves (notas con octava) para renderización.
- * Para este ejemplo usaremos la función "freqToNote" muy básica, ya que una conversión precisa requeriría
- * una tabla inversa. Se asume que el instrumento está afinado en Bb (por ejemplo, para Posición 2 la fundamental es Bb).
- * Aquí usaremos la función que ya teníamos en el otro script para escalas, adaptada a armónicos.
- */
-function freqToNote(freq) {
-  // Para este ejemplo usaremos una conversión aproximada:
+// =====================================================
+// 3. Conversión de Frecuencias a Notas/Octavas para Render
+// =====================================================
+
+function freqToNoteArmonicos(freq) {
+  // Aproximación basada en C4 = 261.63
   const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  // Usaremos la fórmula para obtener el número de semitonos respecto a C4 (261.63 Hz)
-  const semitonos = Math.round(12 * Math.log2(freq / 261.63));
-  const octave = 4 + Math.floor((semitonos) / 12);
-  const index = ((semitonos % 12) + 12) % 12;
+  const semitones = Math.round(12 * Math.log2(freq / 261.63));
+  const octave = 4 + Math.floor(semitones / 12);
+  const index = ((semitones % 12) + 12) % 12;
   return noteNames[index] + "/" + octave;
 }
 
+// Genera claves a partir de un array de frecuencias
+function generarClavesSerie(serieFreq) {
+  return serieFreq.map(freqToNoteArmonicos);
+}
+
+// =====================================================
+// 4. Renderizado en Pentagrama con VexFlow
+// =====================================================
+
+// Transforma tonalidades no válidas a sus equivalentes (para la armadura)
+function fixKeySignature(key) {
+  const mapping = {
+    "D#": "Eb",
+    "G#": "Ab",
+    "A#": "Bb",
+    "Fb": "E",
+    "Cb": "B",
+    "E#": "F"
+  };
+  return mapping[key] || key;
+}
+
 /**
- * Genera la serie de claves (notas con octava) a partir de la serie armónica (frecuencias).
+ * Renderiza un array de frecuencias en el div#staffArmonicos
+ * Se asume la primera nota define la armadura
  */
-function generarClavesSerie(serie) {
-  return serie.map(freq => freqToNote(freq));
-}
-
-// --- 4. Funciones para Reproducir y Renderizar la Serie Armónica ---
-
-// Arreglo global para almacenar los setTimeout de reproducción de armónicos
-let armonicosTimeouts = [];
-
-// Reproduce la serie armónica en secuencia (cada nota se reproduce con un pequeño retardo)
-function reproducirSerieArmonica(serie) {
-  // Primero cancelamos timeouts previos (si existieran)
-  detenerSerieArmonica();
-  armonicosTimeouts = [];
-  let tiempoAcumulado = 0;
-  serie.forEach((freq) => {
-    const timeoutID = setTimeout(() => {
-      reproducirNotaArmonicos(freq, 0.8);
-    }, tiempoAcumulado);
-    armonicosTimeouts.push(timeoutID);
-    tiempoAcumulado += 1000; // 1 segundo entre notas (ajustable)
-  });
-}
-
-// Detiene la reproducción de la serie armónica
-function detenerSerieArmonica() {
-  armonicosTimeouts.forEach(timeoutID => clearTimeout(timeoutID));
-  armonicosTimeouts = [];
-}
-
-// Renderiza la serie armónica en un pentagrama usando VexFlow
-function renderArmonicos(serie) {
-  // Convertimos la serie de frecuencias a claves (notas con octava)
-  const claves = generarClavesSerie(serie);
-  // Se mostrará la serie en forma ascendente en el pentagrama.
-  // Si deseas incluir flechas o indicaciones para la parte descendente, se puede ampliar.
+function renderArmonicos(serieFreq) {
+  const claves = generarClavesSerie(serieFreq);
+  // La armadura se fija según la primera nota, corrigiendo
+  let primerKey = claves[0].split("/")[0];
+  primerKey = fixKeySignature(primerKey);
+  
+  // Iniciamos VexFlow
   const VF = Vex.Flow;
   const container = document.getElementById("staffArmonicos");
   if (!container) return;
@@ -133,23 +122,19 @@ function renderArmonicos(serie) {
   const context = renderer.getContext();
   context.setFont("Arial", 10, "").setBackgroundFillStyle("#fff");
   
-  // Creamos el pentagrama: para armónicos usaremos la clave de sol
+  // Pentagrama en clave de sol con armadura
   const stave = new VF.Stave(10, 40, 580);
-  // La armadura se calcula a partir de la fundamental: usamos la primera nota (clave) de la serie
-  // Aplicamos fixKeySignature para convertir tonalidades no válidas.
-  const fundamentalClave = fixKeySignature(claves[0].split("/")[0]);
-  stave.addClef("treble").addKeySignature(fundamentalClave).setContext(context).draw();
+  stave.addClef("treble").addKeySignature(primerKey).setContext(context).draw();
   
-  // Creamos las notas; todas con duración de negra ('q')
-  const vfNotes = claves.map(key => new VF.StaveNote({ keys: [key], duration: "q" }));
-  // Agregamos accidentals (usando addModifier en VexFlow v4)
-  vfNotes.forEach(note => {
-    const key = note.getKeys()[0];
+  // Creación de notas
+  const vfNotes = claves.map(key => {
+    const note = new VF.StaveNote({ keys: [key], duration: "q" });
     if (key.includes("#")) {
       note.addModifier(new VF.Accidental("#"), 0);
     } else if (key.includes("b")) {
       note.addModifier(new VF.Accidental("b"), 0);
     }
+    return note;
   });
   
   const voice = new VF.Voice({ num_beats: vfNotes.length, beat_value: 4 });
@@ -158,62 +143,161 @@ function renderArmonicos(serie) {
   voice.draw(context, stave);
 }
 
-// --- 5. Eventos y Control de la Sección de Armónicos ---
+// =====================================================
+// 5. Reproducción de la Serie y Manejo de Timeouts
+// =====================================================
 
-// Variables globales para la sección de armónicos
-let currentSerieArmonica = [];
-let isArmonicosPlaying = false;
+function detenerReproduccionArmonicos() {
+  armonicosTimeouts.forEach(t => clearTimeout(t));
+  armonicosTimeouts = [];
+  armonicosEnProgreso = false;
+}
 
-// Función para actualizar la visualización (sin reproducir) según la selección
-function actualizarVisualArmonicos() {
-  const posicion = document.getElementById('posicionArmonicos').value;
+// Dado un array de frecuencias, reproduce en secuencia
+function reproducirSerieArmonicos(serieFreq) {
+  detenerReproduccionArmonicos();
+  armonicosEnProgreso = true;
+  let tiempoAcumulado = 0;
+  
+  serieFreq.forEach(freq => {
+    const tID = setTimeout(() => {
+      reproducirNotaArmonicos(freq, 0.8);
+    }, tiempoAcumulado);
+    armonicosTimeouts.push(tID);
+    tiempoAcumulado += 1000; // 1s entre notas
+  });
+  
+  // Cuando finaliza la serie
+  const totalDuracion = tiempoAcumulado;
+  const endID = setTimeout(() => {
+    armonicosEnProgreso = false;
+  }, totalDuracion);
+  armonicosTimeouts.push(endID);
+}
+
+// =====================================================
+// 6. Lógica principal: Generación y Reproducción
+// =====================================================
+
+// getArmonicosCurrentSettings: obtiene la posición, nivel, y modoProgresion
+function getArmonicosCurrentSettings() {
+  const posicion = document.getElementById('posicionArmonicos').value; 
   const nivel = document.getElementById('nivelArmonicos').value;
-  // Generamos la serie armónica
-  currentSerieArmonica = generarSerieArmonica(posicion, nivel);
-  // Renderizamos la serie en el pentagrama
-  renderArmonicos(currentSerieArmonica);
+  const modo = document.getElementById('modoProgresion').value;
+  return { posicion, nivel, modo };
 }
 
-// Función para iniciar la reproducción y visualización
-function iniciarEjercicioArmonicos() {
-  // Si se está reproduciendo, detener
-  detenerSerieArmonica();
-  isArmonicosPlaying = true;
+/**
+ * Genera la serie de armónicos para la posición actual y la renderiza.
+ * Si la app está en modo "ninguno" (sin progresión), simplemente se reproduce esa serie.
+ * Si está en modo "arriba" o "abajo", recorre todas las posiciones en orden de frecuencia (asc o desc).
+ */
+function iniciarArmonicos() {
+  const { posicion, nivel, modo } = getArmonicosCurrentSettings();
   
-  // Actualizar la serie (en caso de cambios en los selects)
-  actualizarVisualArmonicos();
+  // Detener cualquier reproducción previa
+  detenerReproduccionArmonicos();
   
-  // Reproducir la serie
-  reproducirSerieArmonica(currentSerieArmonica);
+  // 1. Si modo == "ninguno": Reproducir la serie de la posición actual
+  if (modo === "ninguno") {
+    const fundamental = combosValvulas[posicion];
+    const nArm = nivelesArmonicos[nivel];
+    const serieFreq = generarSerieArmonica(fundamental, nArm);
+    renderArmonicos(serieFreq);
+    reproducirSerieArmonicos(serieFreq);
+    return;
+  }
   
-  // Cuando termine la reproducción, marcar como finalizada
-  const totalTime = currentSerieArmonica.length * 1000;
-  setTimeout(() => {
-    isArmonicosPlaying = false;
-  }, totalTime);
+  // 2. Si modo == "arriba" o "abajo": recorre todas las posiciones
+  //    a) ordenamos combosValvulas por su frecuencia
+  const posicionesOrdenadas = Object.entries(combosValvulas)
+    .sort((a, b) => a[1] - b[1]); 
+  // posicionesOrdenadas es un array de [ [combo, freq], [combo, freq], ... ] en orden asc
+  
+  //    b) buscamos dónde está la pos. actual en ese array
+  let indexActual = posicionesOrdenadas.findIndex(x => x[0] === posicion);
+  if (indexActual < 0) indexActual = 0; // fallback
+  
+  //    c) generamos el array de combos a reproducir
+  let combosAReproducir = [];
+  if (modo === "arriba") {
+    // Desde la pos. actual hasta el final
+    combosAReproducir = posicionesOrdenadas.slice(indexActual);
+  } else {
+    // "abajo": invertimos la parte desde pos. actual hasta el principio
+    combosAReproducir = posicionesOrdenadas.slice(0, indexActual + 1).reverse();
+  }
+  
+  //    d) Recorremos combosAReproducir en secuencia, generando y reproduciendo las series.
+  //       Para hacerlo "en bloque", generamos un array de arrays de frecuencias a concatenar
+  let megaSerie = [];
+  combosAReproducir.forEach(entry => {
+    const comboID = entry[0];
+    const fundamental = entry[1];
+    const nArm = nivelesArmonicos[nivel];
+    const serieFreq = generarSerieArmonica(fundamental, nArm);
+    
+    // Podríamos meter un pequeño silencio al final de cada serie
+    // o simplemente concatenar.
+    // De cara a la visualización, iremos mostrando sólo la serie actual.
+    // Pero si deseas mostrar "mega pentagrama" con todas, habría que unir.
+    
+    // De momento, iremos concatenando en megaSerie para su reproducción,
+    // y la visualización la haremos sólo de la última, o la primera, etc.
+    // Ajustable según tu preferencia:
+    megaSerie = megaSerie.concat(serieFreq);
+  });
+  
+  // Renderizamos la última serie (o la primera).
+  // Aquí, por ejemplo, tomamos la SERIE de la *última* posición a la que iremos:
+  const ultimaCombo = combosAReproducir[combosAReproducir.length - 1];
+  const ultimaFundamental = ultimaCombo[1];
+  const ultimaSerie = generarSerieArmonica(ultimaFundamental, nivelesArmonicos[nivel]);
+  renderArmonicos(ultimaSerie);
+  
+  // Reproducimos la megaSerie
+  reproducirSerieArmonicos(megaSerie);
 }
 
-// --- 6. Eventos para actualizar la visualización y manejar la interrupción ---
-// Cuando el usuario cambia la posición o el nivel, se debe detener la reproducción y actualizar la vista.
+// =====================================================
+// 7. Eventos
+// =====================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Al cargar, por defecto se asume "ninguno" en modoProgresion, etc.
+  // Renderizamos la serie actual sin reproducir:
+  
+  // Ajustar si deseas "iniciarArmonicos()" inmediatamente:
+  // o sólo render sin reproducir:
+  actualizarArmonicosVista();
+});
+
+// Actualiza la vista (pentagrama) sin reproducir
+function actualizarArmonicosVista() {
+  const { posicion, nivel } = getArmonicosCurrentSettings();
+  detenerReproduccionArmonicos();
+  
+  const fundamental = combosValvulas[posicion];
+  const nArm = nivelesArmonicos[nivel];
+  const serieFreq = generarSerieArmonica(fundamental, nArm);
+  
+  renderArmonicos(serieFreq);
+}
+
+// Cuando se cambie la posición, nivel o modo, actualizamos la vista sin reproducir
 document.getElementById('posicionArmonicos').addEventListener('change', () => {
-  detenerSerieArmonica();
-  actualizarVisualArmonicos();
+  actualizarArmonicosVista();
 });
 document.getElementById('nivelArmonicos').addEventListener('change', () => {
-  detenerSerieArmonica();
-  actualizarVisualArmonicos();
+  actualizarArmonicosVista();
+});
+document.getElementById('modoProgresion').addEventListener('change', () => {
+  actualizarArmonicosVista();
 });
 
-// Al cargar la pestaña de Armónicos, actualizar la visualización con la serie por defecto
-document.addEventListener('DOMContentLoaded', () => {
-  // Se asume que en el select de posición y nivel ya hay valores por defecto (por ejemplo, "Posición 1" y "facil")
-  actualizarVisualArmonicos();
-});
-
-// --- 7. Asignar botón de reproducción de Armónicos ---
-// Se asume que en el index.html hay un botón con id "btnIniciarArmonicos"
+// Botón para iniciar la reproducción
 document.getElementById('btnIniciarArmonicos').addEventListener('click', () => {
-  if (!isArmonicosPlaying) {
-    iniciarEjercicioArmonicos();
+  if (!armonicosEnProgreso) {
+    iniciarArmonicos();
   }
 });

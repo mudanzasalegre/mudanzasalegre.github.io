@@ -147,23 +147,38 @@
       <!-- Pestaña de Armónicos -->
       <section id="armonicos" class="tab-content">
         <h2>Armónicos</h2>
-        <p>Selecciona la posición y el nivel de dificultad:</p>
+        <p>Selecciona la posición (combinación de válvulas), el nivel de dificultad y el modo de progresión:</p>
+        
         <select id="posicionArmonicos">
-          <option value="Posición 1" selected>Posición 1</option>
-          <option value="Posición 2">Posición 2</option>
-          <option value="Posición 3">Posición 3</option>
+          <option value="0" selected>0 (Open)</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="1-2">1-2</option>
+          <option value="2-3">2-3</option>
+          <option value="1-3">1-3</option>
+          <option value="1-2-3">1-2-3</option>
         </select>
+        
         <select id="nivelArmonicos">
-          <option value="facil" selected>Fácil</option>
-          <option value="medio">Medio</option>
-          <option value="dificil">Difícil</option>
+          <option value="facil" selected>Fácil (4 armónicos)</option>
+          <option value="medio">Medio (6 armónicos)</option>
+          <option value="dificil">Difícil (8 armónicos)</option>
         </select>
+        
+        <select id="modoProgresion">
+          <option value="ninguno" selected>Sin Progresión</option>
+          <option value="arriba">Progresar Arriba (semi-tono a la siguiente pos)</option>
+          <option value="abajo">Progresar Abajo</option>
+        </select>
+        
         <div class="botones">
           <button id="btnIniciarArmonicos">Iniciar Ejercicio</button>
         </div>
+        
         <div id="staffArmonicos"></div>
-        <!-- Aquí se pueden agregar áreas de retroalimentación y estadísticas -->
       </section>
+      
 
     </div>
   </div>
