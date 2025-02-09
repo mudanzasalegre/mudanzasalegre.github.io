@@ -1,155 +1,176 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Entrenamiento Musical para Trompa</title>
-    <!-- Tus estilos -->
-    <link rel="stylesheet" href="css/styles.css">
-    <!-- VexFlow desde CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Entrenamiento Musical para Trompa</h1>
-      
-      <!-- Navegación por módulos (Tabs) -->
-      <nav class="tabs">
-        <button class="tab-button active" data-tab="intervalos">Intervalos</button>
-        <button class="tab-button" data-tab="escalas">Escalas</button>
-        <button class="tab-button" data-tab="arpegios">Arpegios</button>
-        <button class="tab-button" data-tab="armonicos">Armónicos</button>
-      </nav>
-      
-      <div id="content">
-        <!-- Módulo de Intervalos -->
-        <section id="intervalos" class="tab-content active">
-          <h2>Entrenador de Intervalos</h2>
-          <p>Selecciona el nivel de dificultad:</p>
-          <select id="nivelDificultad">
-            <option value="facil" selected>Fácil</option>
-            <option value="medio">Medio</option>
-            <option value="dificil">Difícil</option>
-          </select>
-          <div class="botones">
-            <button id="btnReproducirIntervalo">Reproducir Intervalo</button>
-          </div>
-          
-          <!-- Opciones Multiple Choice -->
-          <div class="opciones" id="opcionesIntervalo"></div>
-          <!-- Mensaje para Intervalos (MC) -->
-          <div class="mensaje" id="mensajeIntervalos"></div>
-          <!-- Estadísticas MC -->
-          <div class="stats">
-            <h3>Estadísticas Multiple Choice</h3>
-            <p>Aciertos: <span id="aciertosIntervalo">0</span></p>
-            <p>Fallos: <span id="fallosIntervalo">0</span></p>
-          </div>
-          <hr>
-          
-          <!-- Módulo Evaluación Automática (EA) -->
-          <div class="botones">
-            <button id="btnEvaluarEjecucion">Iniciar Evaluación</button>
-          </div>
-          <div class="mensaje" id="mensajeEvaluacion"></div>
-          <div class="stats">
-            <h3>Estadísticas Evaluación Automática</h3>
-            <p>Aciertos: <span id="aciertosEval">0</span></p>
-            <p>Fallos: <span id="fallosEval">0</span></p>
-          </div>
-          <div class="mensaje" id="contador"></div>
-        </section>
-        
-        <!-- Módulo de Escalas -->
-        <section id="escalas" class="tab-content">
-          <h2>Entrenador de Escalas</h2>
-          <p>Selecciona el tipo de escala y la tonalidad (para trompa en fa):</p>
-          <select id="tipoEscala">
-            <option value="mayor" selected>Mayor</option>
-            <option value="menor">Menor Natural</option>
-            <option value="armonica">Menor Armónica</option>
-            <option value="melodica">Menor Melódica</option>
-            <option value="oriental">Oriental</option>
-            <option value="pentatonica">Pentatónica</option>
-          </select>
-          <!-- Tonalidades separadas (sostenidos y bemoles) -->
-          <select id="tonalidadEscala">
-            <!-- Sostenidos -->
-            <option value="C" selected>Do (C)</option>
-            <option value="C#">Do# (C#)</option>
-            <option value="D">Re (D)</option>
-            <option value="D#">Re# (D#)</option>
-            <option value="E">Mi (E)</option>
-            <option value="F">Fa (F)</option>
-            <option value="F#">Fa# (F#)</option>
-            <option value="G">Sol (G)</option>
-            <option value="G#">Sol# (G#)</option>
-            <option value="A">La (A)</option>
-            <option value="A#">La# (A#)</option>
-            <option value="B">Si (B)</option>
-            <!-- Bemoles -->
-            <option value="Db">Reb (Db)</option>
-            <option value="Eb">Mib (Eb)</option>
-            <option value="Gb">Solb (Gb)</option>
-            <option value="Ab">Lab (Ab)</option>
-            <option value="Bb">Sib (Bb)</option>
-            <option value="Cb">Dob (Cb)</option>
-            <option value="Fb">Fab (Fb)</option>
-          </select>
-          <div class="botones">
-            <button id="btnReproducirEscala">Reproducir Escala</button>
-          </div>
-          <!-- Contenedor para el pentagrama (VexFlow) -->
-          <div id="staffContainer"></div>
-          <div class="mensaje" id="mensajeEscala"></div>
-        </section>
-        
-        <!-- Módulo de Arpegios -->
-        <section id="arpegios" class="tab-content">
-          <h2>Entrenador de Arpegios</h2>
-          <p>Selecciona el tipo de acorde y la tonalidad (para trompa en fa):</p>
-          <select id="tipoArpegio">
-            <option value="mayor" selected>Mayor</option>
-            <option value="menor">Menor</option>
-            <option value="dominante">Dominante</option>
-          </select>
-          <select id="tonalidadArpegio">
-            <!-- Sostenidos -->
-            <option value="C" selected>Do (C)</option>
-            <option value="C#">Do# (C#)</option>
-            <option value="D">Re (D)</option>
-            <option value="D#">Re# (D#)</option>
-            <option value="E">Mi (E)</option>
-            <option value="F">Fa (F)</option>
-            <option value="F#">Fa# (F#)</option>
-            <option value="G">Sol (G)</option>
-            <option value="G#">Sol# (G#)</option>
-            <option value="A">La (A)</option>
-            <option value="A#">La# (A#)</option>
-            <option value="B">Si (B)</option>
-            <!-- Bemoles -->
-            <option value="Db">Reb (Db)</option>
-            <option value="Eb">Mib (Eb)</option>
-            <option value="Gb">Solb (Gb)</option>
-            <option value="Ab">Lab (Ab)</option>
-            <option value="Bb">Sib (Bb)</option>
-            <option value="Cb">Dob (Cb)</option>
-            <option value="Fb">Fab (Fb)</option>
-          </select>
-          <div class="botones">
-            <button id="btnReproducirArpegio">Reproducir Arpegio</button>
-          </div>
-          <div class="mensaje" id="mensajeArpegio"></div>
-        </section>
-        
-        <!-- Módulo de Armónicos -->
-        <section id="armonicos" class="tab-content">
-          <h2>Armónicos</h2>
-          <p>Aquí se implementarán funciones para analizar armónicos.</p>
-        </section>
-      </div>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrenamiento Musical para Trompa</title>
+  <!-- Tus estilos -->
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- VexFlow desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Entrenamiento Musical para Trompa</h1>
+
+    <!-- Navegación por módulos (Tabs) -->
+    <nav class="tabs">
+      <button class="tab-button active" data-tab="intervalos">Intervalos</button>
+      <button class="tab-button" data-tab="escalas">Escalas</button>
+      <button class="tab-button" data-tab="arpegios">Arpegios</button>
+      <button class="tab-button" data-tab="armonicos">Armónicos</button>
+    </nav>
+
+    <div id="content">
+      <!-- Módulo de Intervalos -->
+      <section id="intervalos" class="tab-content active">
+        <h2>Entrenador de Intervalos</h2>
+        <p>Selecciona el nivel de dificultad:</p>
+        <select id="nivelDificultad">
+          <option value="facil" selected>Fácil</option>
+          <option value="medio">Medio</option>
+          <option value="dificil">Difícil</option>
+        </select>
+        <div class="botones">
+          <button id="btnReproducirIntervalo">Reproducir Intervalo</button>
+        </div>
+
+        <!-- Opciones Multiple Choice -->
+        <div class="opciones" id="opcionesIntervalo"></div>
+        <!-- Mensaje para Intervalos (MC) -->
+        <div class="mensaje" id="mensajeIntervalos"></div>
+        <!-- Estadísticas MC -->
+        <div class="stats">
+          <h3>Estadísticas Multiple Choice</h3>
+          <p>Aciertos: <span id="aciertosIntervalo">0</span></p>
+          <p>Fallos: <span id="fallosIntervalo">0</span></p>
+        </div>
+        <hr>
+
+        <!-- Módulo Evaluación Automática (EA) -->
+        <div class="botones">
+          <button id="btnEvaluarEjecucion">Iniciar Evaluación</button>
+        </div>
+        <div class="mensaje" id="mensajeEvaluacion"></div>
+        <div class="stats">
+          <h3>Estadísticas Evaluación Automática</h3>
+          <p>Aciertos: <span id="aciertosEval">0</span></p>
+          <p>Fallos: <span id="fallosEval">0</span></p>
+        </div>
+        <div class="mensaje" id="contador"></div>
+      </section>
+
+      <!-- Módulo de Escalas -->
+      <section id="escalas" class="tab-content">
+        <h2>Entrenador de Escalas</h2>
+        <p>Selecciona el tipo de escala y la tonalidad (para trompa en fa):</p>
+        <select id="tipoEscala">
+          <option value="mayor" selected>Mayor</option>
+          <option value="menor">Menor Natural</option>
+          <option value="armonica">Menor Armónica</option>
+          <option value="melodica">Menor Melódica</option>
+          <option value="oriental">Oriental</option>
+          <option value="pentatonica">Pentatónica</option>
+        </select>
+        <!-- Tonalidades separadas (sostenidos y bemoles) -->
+        <select id="tonalidadEscala">
+          <!-- Sostenidos -->
+          <option value="C" selected>Do (C)</option>
+          <option value="C#">Do# (C#)</option>
+          <option value="D">Re (D)</option>
+          <option value="D#">Re# (D#)</option>
+          <option value="E">Mi (E)</option>
+          <option value="F">Fa (F)</option>
+          <option value="F#">Fa# (F#)</option>
+          <option value="G">Sol (G)</option>
+          <option value="G#">Sol# (G#)</option>
+          <option value="A">La (A)</option>
+          <option value="A#">La# (A#)</option>
+          <option value="B">Si (B)</option>
+          <!-- Bemoles -->
+          <option value="Db">Reb (Db)</option>
+          <option value="Eb">Mib (Eb)</option>
+          <option value="Gb">Solb (Gb)</option>
+          <option value="Ab">Lab (Ab)</option>
+          <option value="Bb">Sib (Bb)</option>
+          <option value="Cb">Dob (Cb)</option>
+          <option value="Fb">Fab (Fb)</option>
+        </select>
+        <div class="botones">
+          <button id="btnReproducirEscala">Reproducir Escala</button>
+        </div>
+        <!-- Contenedor para el pentagrama (VexFlow) -->
+        <div id="staffContainer"></div>
+        <div class="mensaje" id="mensajeEscala"></div>
+      </section>
+
+      <!-- Módulo de Arpegios -->
+      <section id="arpegios" class="tab-content">
+        <h2>Entrenador de Arpegios</h2>
+        <p>Selecciona el tipo de acorde y la tonalidad (para trompa en fa):</p>
+        <select id="tipoArpegio">
+          <option value="mayor" selected>Mayor</option>
+          <option value="menor">Menor</option>
+          <option value="dominante">Dominante</option>
+        </select>
+        <select id="tonalidadArpegio">
+          <!-- Sostenidos -->
+          <option value="C" selected>Do (C)</option>
+          <option value="C#">Do# (C#)</option>
+          <option value="D">Re (D)</option>
+          <option value="D#">Re# (D#)</option>
+          <option value="E">Mi (E)</option>
+          <option value="F">Fa (F)</option>
+          <option value="F#">Fa# (F#)</option>
+          <option value="G">Sol (G)</option>
+          <option value="G#">Sol# (G#)</option>
+          <option value="A">La (A)</option>
+          <option value="A#">La# (A#)</option>
+          <option value="B">Si (B)</option>
+          <!-- Bemoles -->
+          <option value="Db">Reb (Db)</option>
+          <option value="Eb">Mib (Eb)</option>
+          <option value="Gb">Solb (Gb)</option>
+          <option value="Ab">Lab (Ab)</option>
+          <option value="Bb">Sib (Bb)</option>
+          <option value="Cb">Dob (Cb)</option>
+          <option value="Fb">Fab (Fb)</option>
+        </select>
+        <div class="botones">
+          <button id="btnReproducirArpegio">Reproducir Arpegio</button>
+        </div>
+        <div class="mensaje" id="mensajeArpegio"></div>
+      </section>
+
+      <!-- Pestaña de Armónicos -->
+      <section id="armonicos" class="tab-content">
+        <h2>Armónicos</h2>
+        <p>Selecciona la posición y el nivel de dificultad:</p>
+        <select id="posicionArmonicos">
+          <option value="Posición 1" selected>Posición 1</option>
+          <option value="Posición 2">Posición 2</option>
+          <option value="Posición 3">Posición 3</option>
+        </select>
+        <select id="nivelArmonicos">
+          <option value="facil" selected>Fácil</option>
+          <option value="medio">Medio</option>
+          <option value="dificil">Difícil</option>
+        </select>
+        <div class="botones">
+          <button id="btnIniciarArmonicos">Iniciar Ejercicio</button>
+        </div>
+        <div id="staffArmonicos"></div>
+        <!-- Aquí se pueden agregar áreas de retroalimentación y estadísticas -->
+      </section>
+
     </div>
-    
-    <script src="js/script.js"></script>
-  </body>
+  </div>
+
+  <script src="js/script.js"></script>
+  <script src="js/armonicos.js"></script>
+
+</body>
+
 </html>
